@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-serving-platform
+  namespace: ml-serving
+  labels:
+    app: ml-serving-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ml-serving-platform
+  template:
+    metadata:
+      labels:
+        app: ml-serving-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: model-server
+        image: ml-serving-platform@sha256:latest  # Will be replaced with actual SHA
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+            add: []
+        ports:
+        - containerPort: 8000
+          name: metrics
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        env:
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            configMapKeyRef:
+              name: ml-serving-config
+              key: mlflow_tracking_uri
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: model-storage
+          mountPath: /app/models
+          readOnly: true
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-storage-pvc
+      automountServiceAccountToken: false
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ml-serving-platform
+              topologyKey: "kubernetes.io/hostname"
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-serving-platform-pdb
+  namespace: ml-serving
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: ml-serving-platform
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-serving-platform
+  namespace: ml-serving
+  labels:
+    app: ml-serving-platform
+spec:
+  selector:
+    app: ml-serving-platform
+  ports:
+  - port: 8080
+    name: http
+    targetPort: 8080
+  - port: 8000
+    name: metrics
+    targetPort: 8000
+  type: ClusterIP  # Changed from LoadBalancer for better security
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-serving-config
+  namespace: ml-serving
+data:
+  mlflow_tracking_uri: "http://mlflow-tracking-server:5000"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-storage-pvc
+  namespace: ml-serving
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

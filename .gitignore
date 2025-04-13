@@ -1,25 +1,87 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 *.so
-*.dylib
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# env file
+# Virtual Environment
+venv/
+ENV/
+env/
 .env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.settings/
+
+# ML specific
+mlruns/
+models/
+*.h5
+*.pkl
+*.model
+*.pt
+*.pth
+*.onnx
+
+# Logs and databases
+*.log
+*.sqlite3
+logs/
+*.db
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+*.env
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Misc
+.pytest_cache/
+.ipynb_checkpoints/
+*.bak
+*.swp
+*.tmp
+temp/
+tmp/
